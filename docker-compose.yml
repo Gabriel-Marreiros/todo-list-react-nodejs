@@ -1,0 +1,111 @@
+version: '3'
+
+services:
+  backend:
+    image: gabrielmarreiros/todo-list-react-nodejs-backend
+    container_name: todo-list-react-nodejs-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - mongodb
+      - rabbitmq
+    environment:
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_USER=${MONGODB_USER}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+    networks:
+      - mongodb-network
+      - rabbitmq-network
+      - todo-list-react-nodejs-network
+
+  notificationmicroservice:
+    image: gabrielmarreiros/todo-list-react-nodejs-notificationmicroservice
+    container_name: todo-list-react-nodejs-notificationmicroservice
+    build:
+      context: ./notificationmicroservice
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql
+      - rabbitmq
+    environment:
+      - MYSQLDB_USER=${MYSQLDB_USER}
+      - MYSQLDB_PASSWORD=${MYSQLDB_PASSWORD}
+      - MYSQLDB_NAME=${MYSQLDB_NAME}
+      - MYSQLDB_HOST=${MYSQLDB_HOST}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+    networks:
+      - mysql-network
+      - rabbitmq-network
+      - todo-list-react-nodejs-network
+
+  frontend:
+    image: gabrielmarreiros/todo-list-react-nodejs-frontend
+    container_name: todo-list-react-nodejs-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_ACCESS_TOKEN_NAME=${VITE_ACCESS_TOKEN_NAME}
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - todo-list-react-nodejs-network
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - 27017:27017
+    networks:
+      - todo-list-react-nodejs-network
+      - mongodb-network
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - '3306:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQLDB_PASSWORD}
+      - MYSQL_DATABASE=${MYSQLDB_PASSWORD}
+    networks:
+      - todo-list-react-nodejs-network
+      - mysql-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    networks:
+      - rabbitmq-network
+
+networks:
+  todo-list-react-nodejs-network:
+    name: todo-list-react-nodejs-network
+    driver: bridge
+
+  mongodb-network:
+    name: mongodb-network
+    driver: bridge
+
+  mysql-network:
+    name: mysql-network
+    driver: bridge
+
+  rabbitmq-network:
+    name: rabbitmq-network
+    driver: bridge

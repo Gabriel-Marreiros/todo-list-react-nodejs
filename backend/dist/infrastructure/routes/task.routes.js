@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.taskRouter = void 0;
+const express_1 = require("express");
+const task_controller_1 = __importDefault(require("../../application/controllers/task.controller"));
+const taskRouter = (0, express_1.Router)();
+exports.taskRouter = taskRouter;
+taskRouter.get("/", task_controller_1.default.getAllUserTasks());
+taskRouter.post("/", task_controller_1.default.createTask());
+taskRouter.get("/completed", task_controller_1.default.getCompletedTasks());
+taskRouter.get("/today", task_controller_1.default.getTodaysTask());
+taskRouter.get("/next", task_controller_1.default.getNextTasks());
+taskRouter.post("/complete", task_controller_1.default.completeTaskById());
+taskRouter.post("/complete-many", task_controller_1.default.completeManyTasksById());
+taskRouter.get("/:taskId", task_controller_1.default.getTaskById());
+taskRouter.put("/:taskId", task_controller_1.default.updateTask());
+taskRouter.delete("/:taskId", task_controller_1.default.deleteTask());
