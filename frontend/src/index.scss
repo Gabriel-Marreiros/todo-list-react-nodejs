@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'react-big-calendar/lib/sass/styles';
+
+::-webkit-scrollbar, ::-webkit-scrollbar-track{
+    background: #F1F1F1;
+    width: .8rem;
+    border-radius: 2rem;
+
+}
+
+::-webkit-scrollbar-thumb{
+    background: #A8A8A8;
+    border-radius: 2rem;
+    border: 3px solid #F1F1F1;
+}

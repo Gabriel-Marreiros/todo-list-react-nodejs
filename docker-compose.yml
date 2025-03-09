@@ -1,0 +1,103 @@
+version: '3'
+
+services:
+  backend:
+    image: gabrielmarreiros/todo-list-react-nodejs-backend
+    container_name: todo-list-react-nodejs-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_USER=${MONGODB_USER}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - KAFKA_URL=${KAFKA_URL}
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - mongodb-network
+      - kafka-network
+      - todo-list-react-nodejs-network
+
+  notification-microservice:
+    image: gabrielmarreiros/todo-list-react-nodejs-notification-microservice
+    container_name: todo-list-react-nodejs-notification-microservice
+    build:
+      context: ./notification-microservice
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAIL_SENDER=${EMAIL_SENDER}
+      - KAFKA_URL=${KAFKA_URL}
+    restart: always
+    ports:
+      - 8081:8081
+    networks:
+      - kafka-network
+      - todo-list-react-nodejs-network
+
+  frontend:
+    image: gabrielmarreiros/todo-list-react-nodejs-frontend
+    container_name: todo-list-react-nodejs-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_ACCESS_TOKEN_NAME=${VITE_ACCESS_TOKEN_NAME}
+    ports:
+      - 5173:5173
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - todo-list-react-nodejs-network
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    ports:
+      - 27017:27017
+    networks:
+      - mongodb-network
+
+  kafka:
+    image: obsidiandynamics/kafka
+    container_name: kafka
+    ports:
+      - '9092:9092'
+      - '2181:2181'
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+    networks:
+      - kafka-network
+
+networks:
+  todo-list-react-nodejs-network:
+    name: todo-list-react-nodejs-network
+    driver: bridge
+
+  mongodb-network:
+    name: mongodb-network
+    driver: bridge
+
+  kafka-network:
+    name: kafka-network
+    driver: bridge

@@ -1,0 +1,66 @@
+pipeline {
+    
+    agent {
+        label 'master'
+    }
+    
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_CONTAINER_NAME = 'todo-list-react-nodejs-frontend'
+        DOCKER_IMAGE_NAME = 'gabrielmarreiros/todo-list-react-nodejs-frontend'
+        DOCKER_IMAGE_TAG = 'latest'
+    }
+    
+    stages {
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('frontend') {
+                    echo 'Building the Docker image...'
+
+                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} . --no-cache'
+                } 
+            }
+        }
+        
+        stage('Push Image to Docker Hub') {
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+                
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'PASSSWORD', usernameVariable: 'USERNAME')]) {
+                    sh 'docker login -u $USERNAME -p $PASSWORD'
+                }
+
+                sh 'docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}'
+            }
+        }
+        
+        stage('Deploy on Server') {
+            steps {
+                echo 'Deploying the Docker image to the server...'  
+                
+                sshagent(['server-access']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no root@gabrielmarreiros.com.br "
+                            docker stop ${DOCKER_CONTAINER_NAME} &&
+                            docker rm ${DOCKER_CONTAINER_NAME} &&
+                            docker rmi ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} &&
+                            cd docker_composes/todo-list-react-nodejs &&
+                            docker-compose up -d frontend
+                        "
+                    """
+                }
+            }
+        }
+    }
+    
+    post { 
+        always { 
+            echo 'Deleting images with tag <none>'
+            sh 'docker rmi $(docker images -f "dangling=true" -q) --force'
+
+            echo 'Cleaning up the Workspace...'
+            cleanWs()
+        }
+    }
+}
